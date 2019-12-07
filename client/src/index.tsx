@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { AI } from './ai'
 import './index.css';
+import io from 'socket.io-client';
 
 type SquareProps = {
     value: string
@@ -69,7 +71,12 @@ type GameState = {
     stepNumber: number
 }
 
+
+
 class Game extends React.Component<{}, GameState> {
+
+    socket: SocketIOClient.Socket|null = null;
+
     constructor(props: {}) {
         super(props);
         this.state = {
@@ -82,20 +89,32 @@ class Game extends React.Component<{}, GameState> {
     }
 
     componentDidMount() {
-        fetch("/api/guitars/all").then(res => res.json())
+        fetch("/api/board").then(res => res.json())
             .then((result) => {
-                console.log(result)
-                this.setState({
+                console.log(result);
+                /*this.setState({
                     history: [{
                         squares: result,
                     }],
                     stepNumber: 0,
                     xIsNext: true,
-                })
-            })
+                })*/
+            });
+
+        this.socket = io.connect('http://localhost:4000');
+        this.socket.on('news',  (data: any) => {
+            console.log(data);
+            if (this.socket !==null) {
+                this.socket.emit('my other event', {my: 'data'});
+            }
+        });
     }
 
     handleClick(i: number) {
+        if (this.socket) {
+            this.socket.emit('move', {number: i});
+        }
+
         const history = this.state.history.slice(0, this.state.stepNumber + 1);
         const current = history[history.length - 1];
         const squares = current.squares.slice();
@@ -103,12 +122,23 @@ class Game extends React.Component<{}, GameState> {
             return;
         }
         squares[i] = this.state.xIsNext ? 'X' : 'O';
+
+        console.log(this.state.xIsNext);
+
+
+
         this.setState({
             history: history.concat([{
                 squares: squares,
             }]),
             stepNumber: history.length,
             xIsNext: !this.state.xIsNext,
+        }, ()=> {
+            if (!this.state.xIsNext) {
+                let oMove = new AI('O').computeMove(squares);
+                this.handleClick(oMove);
+                console.log("Would Move to ", oMove);
+            }
         });
     }
 
@@ -162,7 +192,7 @@ class Game extends React.Component<{}, GameState> {
     }
 }
 
-function calculateWinner(squares: Array<string>) {
+export function calculateWinner(squares: Array<string>) {
     const lines = [
         [0, 1, 2],
         [3, 4, 5],

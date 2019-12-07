@@ -1,21 +1,57 @@
-import express from "express";
-import * as routes from "./routes";
-const app = express();
-const port = 4000; // default port to listen
+import {Socket} from "socket.io";
 
-// Configure Express to parse incoming JSON data
-app.use( express.json() );
+const uuidv4 = require('uuid/v4');
+var app = require('express')();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
 
-// Configure routes
-routes.register( app );
 
-// define a route handler for the default home page
-app.get( "/", ( req, res ) => {
-    res.send( "Hello world!" );
-} );
+server.listen(4000);
+// WARNING: app.listen(80) will NOT work here!
 
-// start the Express server
-app.listen( port, () => {
-    // tslint:disable-next-line:no-console
-    console.log( `server started at http://localhost:${ port }` );
-} );
+var inQueueSocket: Socket = null;
+
+app.get('/', function (req: any, res: any) {
+    res.sendFile(__dirname + '/index.html');
+});
+
+app.get('/api/board', function (req: any, res: any) {
+    const k = Array(9).fill(null);
+    k[0] = "X";
+    k[1] = "O";
+    return res.json( k );
+
+    // res.sendFile(__dirname + '/index.html');
+});
+
+io.on('connection', function (socket: Socket) {
+    //console.log(io.of('/').in("room-1"))
+    console.log("Socket Connected");
+    if (inQueueSocket === null) {
+        inQueueSocket = socket;
+        socket.emit('news', { message: 'queued'});
+    } else {
+        const room = uuidv4();
+        socket.emit('news', { message: 'joined', room: room, player:'X'});
+        inQueueSocket.emit('news', { message: 'joined', room: room, player: 'O'});
+
+        inQueueSocket.join(room);
+        socket.join(room);
+    }
+
+    socket.on('my other event', function (data) {
+        console.log(data);
+    });
+
+    socket.on("move", (data) => {
+        console.log("move", data);
+    })
+
+    socket.on('disconnect', (reason) => {
+        if (inQueueSocket === socket) {
+            console.log("In Queued Socket has disconnected");
+            inQueueSocket = null;
+        }
+    })
+});
+
