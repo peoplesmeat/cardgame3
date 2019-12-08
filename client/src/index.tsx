@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { AI } from './ai'
+import {AI} from './ai'
 import './index.css';
 import io from 'socket.io-client';
 
@@ -21,7 +21,9 @@ type SquareProps = {
 
 function Square(props: SquareProps) {
     return (
-        <button className="square" onClick={() => { props.onClick() }}>
+        <button className="square" onClick={() => {
+            props.onClick()
+        }}>
             {props.value}
         </button>
     );
@@ -66,20 +68,23 @@ class Board extends React.Component<BoardState, {}> {
 }
 
 type GameState = {
-    history: Array<{squares: Array<string>}>
+    player: string|null
+    game: string|null
+    history: Array<{ squares: Array<string> }>
     xIsNext: boolean
     stepNumber: number
 }
 
 
-
 class Game extends React.Component<{}, GameState> {
 
-    socket: SocketIOClient.Socket|null = null;
+    socket: SocketIOClient.Socket | null = null;
 
     constructor(props: {}) {
         super(props);
         this.state = {
+            player: null,
+            game: null,
             history: [{
                 squares: Array(9).fill(null),
             }],
@@ -101,20 +106,39 @@ class Game extends React.Component<{}, GameState> {
                 })*/
             });
 
-        this.socket = io.connect('http://localhost:4000');
-        this.socket.on('news',  (data: any) => {
+        this.socket = io.connect('http://192.168.0.104:4000');
+        this.socket.on('news', (data: any) => {
             console.log(data);
-            if (this.socket !==null) {
+
+            this.setState({game: data.game, player: data.player});
+
+            if (this.socket !== null) {
                 this.socket.emit('my other event', {my: 'data'});
             }
         });
+        this.socket.on('move', (data: any) => {
+            console.log("move", data);
+            this.move(data.number);
+        })
     }
 
     handleClick(i: number) {
-        if (this.socket) {
-            this.socket.emit('move', {number: i});
+
+        console.log(this.state);
+        if (this.state.xIsNext && this.state.player == 'X') {
+        } else if (!this.state.xIsNext && this.state.player == 'O') {
+        } else {
+            return;
         }
 
+        if (this.socket) {
+            this.socket.emit('move', {game: this.state.game, number: i});
+        }
+
+        this.move(i);
+    }
+
+    move(i: number) {
         const history = this.state.history.slice(0, this.state.stepNumber + 1);
         const current = history[history.length - 1];
         const squares = current.squares.slice();
@@ -126,19 +150,18 @@ class Game extends React.Component<{}, GameState> {
         console.log(this.state.xIsNext);
 
 
-
         this.setState({
             history: history.concat([{
                 squares: squares,
             }]),
             stepNumber: history.length,
             xIsNext: !this.state.xIsNext,
-        }, ()=> {
-            if (!this.state.xIsNext) {
+        }, () => {
+            /*if (!this.state.xIsNext) {
                 let oMove = new AI('O').computeMove(squares);
                 this.handleClick(oMove);
                 console.log("Would Move to ", oMove);
-            }
+            }*/
         });
     }
 
@@ -157,11 +180,13 @@ class Game extends React.Component<{}, GameState> {
 
         const moves = history.map((step, move) => {
             const desc = move ?
-                "Goto Move #" + move:
+                "Goto Move #" + move :
                 "Goto Game Start";
             return (
                 <li key={move}>
-                    <button onClick={()=> {this.jumpTo(move)}}>{desc}</button>
+                    <button onClick={() => {
+                        this.jumpTo(move)
+                    }}>{desc}</button>
                 </li>
             )
         })
@@ -185,6 +210,8 @@ class Game extends React.Component<{}, GameState> {
                 <div className="game-info">
                     <div>{status}</div>
                     <div>{this.state.stepNumber}</div>
+                    <div>Player: {this.state.player}</div>
+                    <div>Game: {this.state.game}</div>
                     <ol>{moves}</ol>
                 </div>
             </div>

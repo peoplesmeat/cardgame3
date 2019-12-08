@@ -32,11 +32,13 @@ io.on('connection', function (socket: Socket) {
         socket.emit('news', { message: 'queued'});
     } else {
         const room = uuidv4();
-        socket.emit('news', { message: 'joined', room: room, player:'X'});
-        inQueueSocket.emit('news', { message: 'joined', room: room, player: 'O'});
+        socket.emit('news', { message: 'joined', game: room, player:'X'});
+        inQueueSocket.emit('news', { message: 'joined', game: room, player: 'O'});
 
         inQueueSocket.join(room);
         socket.join(room);
+
+        inQueueSocket = null;
     }
 
     socket.on('my other event', function (data) {
@@ -44,14 +46,21 @@ io.on('connection', function (socket: Socket) {
     });
 
     socket.on("move", (data) => {
-        console.log("move", data);
-    })
+        if (!(data.room in socket.rooms)) {
+            console.log("move", data);
+            socket.to(data.game).emit('move', data);
+        } else {
+            console.log("BAD ROOM", data.room, socket.rooms);
+        }
+    });
 
     socket.on('disconnect', (reason) => {
         if (inQueueSocket === socket) {
             console.log("In Queued Socket has disconnected");
             inQueueSocket = null;
         }
-    })
+    });
+
+
 });
 
