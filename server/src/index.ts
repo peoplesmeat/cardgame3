@@ -34,7 +34,6 @@ app.get('/api/board', function (req: any, res: any) {
 });
 
 io.on('connection', function (socket: Socket & StoresGame) {
-    //console.log(io.of('/').in("room-1"))
     console.log("Socket Connected");
     if (inQueueSocket === null) {
         inQueueSocket = socket;
@@ -69,6 +68,7 @@ io.on('connection', function (socket: Socket & StoresGame) {
         console.log("Socket has disconnected", socket.currentGame);
 
         if (inQueueSocket === socket) {
+            console.log("Removing the queued socket");
             inQueueSocket = null;
         }
 
@@ -77,7 +77,5 @@ io.on('connection', function (socket: Socket & StoresGame) {
         }
 
     });
-
-
 });
 
