@@ -68,29 +68,33 @@ class Board extends React.Component<BoardState, {}> {
 }
 
 type GameState = {
-    player: string|null
-    game: string|null
+    player: string | null
+    game: string | null
     history: Array<{ squares: Array<string> }>
     xIsNext: boolean
     stepNumber: number
 }
 
 
-class Game extends React.Component<{}, GameState> {
+class Game extends React.Component<{player: string, game: string, socket: any}, GameState> {
 
-    socket: SocketIOClient.Socket | null = null;
 
-    constructor(props: {}) {
+    constructor(props: {player: string, game: string, socket: any}) {
         super(props);
         this.state = {
-            player: null,
-            game: null,
+            player: props.player,
+            game: props.game,
             history: [{
                 squares: Array(9).fill(null),
             }],
             stepNumber: 0,
             xIsNext: true,
         };
+
+        props.socket.on('move', (data: any) => {
+            console.log("move", data);
+            this.move(data.number);
+        });
     }
 
     componentDidMount() {
@@ -106,20 +110,7 @@ class Game extends React.Component<{}, GameState> {
                 })*/
             });
 
-        this.socket = io.connect('http://192.168.0.104:4000');
-        this.socket.on('news', (data: any) => {
-            console.log(data);
 
-            this.setState({game: data.game, player: data.player});
-
-            if (this.socket !== null) {
-                this.socket.emit('my other event', {my: 'data'});
-            }
-        });
-        this.socket.on('move', (data: any) => {
-            console.log("move", data);
-            this.move(data.number);
-        })
     }
 
     handleClick(i: number) {
@@ -131,9 +122,7 @@ class Game extends React.Component<{}, GameState> {
             return;
         }
 
-        if (this.socket) {
-            this.socket.emit('move', {game: this.state.game, number: i});
-        }
+        this.props.socket.emit('move', {game: this.state.game, number: i});
 
         this.move(i);
     }
@@ -239,9 +228,58 @@ export function calculateWinner(squares: Array<string>) {
     return null;
 }
 
+class App extends React.Component<{}, any> {
+    constructor(props: {}) {
+        super(props);
+        this.state = {connected: false};
+    }
+
+    componentDidMount(): void {
+        this.connect()
+    }
+
+    connect(): void {
+        let socket: SocketIOClient.Socket | null = null;
+        socket = io.connect(`http://${window.location.hostname}:4000`);
+        socket.on('news', (data: any) => {
+            console.log("Connected: ", data);
+
+            if (data.message == "joined") {
+                this.setState({
+                    connected: true,
+                    currentGame: {game: data.game, player: data.player, socket: socket}
+                });
+            }
+        });
+
+        socket.on('disconnected', (data: any) => {
+            console.log("other guys disconnected");
+            this.setState({connected: false});
+            if (socket !== null)
+                socket.disconnect();
+            this.connect();
+        })
+    }
+
+    render() {
+        if (!this.state.connected) {
+            return (
+                <div>Waiting for Another Player ... </div>
+            );
+        } else {
+            return <Game
+                player={this.state.currentGame.player}
+                game={this.state.currentGame.game}
+                socket={this.state.currentGame.socket}
+            ></Game>
+        }
+
+    }
+}
+
 // ========================================
 
 ReactDOM.render(
-    <Game/>,
+    <App/>,
     document.getElementById('root')
 );

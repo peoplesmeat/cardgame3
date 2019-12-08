@@ -5,11 +5,20 @@ var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
+app.use(function(req: any, res: any, next: any) {
+    res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
 
 server.listen(4000);
 // WARNING: app.listen(80) will NOT work here!
 
-var inQueueSocket: Socket = null;
+type StoresGame = {
+    currentGame: string
+}
+
+var inQueueSocket: Socket & StoresGame = null;
 
 app.get('/', function (req: any, res: any) {
     res.sendFile(__dirname + '/index.html');
@@ -24,7 +33,7 @@ app.get('/api/board', function (req: any, res: any) {
     // res.sendFile(__dirname + '/index.html');
 });
 
-io.on('connection', function (socket: Socket) {
+io.on('connection', function (socket: Socket & StoresGame) {
     //console.log(io.of('/').in("room-1"))
     console.log("Socket Connected");
     if (inQueueSocket === null) {
@@ -37,6 +46,8 @@ io.on('connection', function (socket: Socket) {
 
         inQueueSocket.join(room);
         socket.join(room);
+        socket.currentGame = room;
+        inQueueSocket.currentGame = room;
 
         inQueueSocket = null;
     }
@@ -55,10 +66,16 @@ io.on('connection', function (socket: Socket) {
     });
 
     socket.on('disconnect', (reason) => {
+        console.log("Socket has disconnected", socket.currentGame);
+
         if (inQueueSocket === socket) {
-            console.log("In Queued Socket has disconnected");
             inQueueSocket = null;
         }
+
+        if (socket.currentGame) {
+            socket.to(socket.currentGame).emit('disconnected', {});
+        }
+
     });
 
 
