@@ -2,7 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {AI} from './ai'
 import './index.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import io from 'socket.io-client';
+
+import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import Container from 'react-bootstrap/Container';
+
 
 type SquareProps = {
     value: string
@@ -172,11 +178,11 @@ class Game extends React.Component<{player: string, game: string, socket: any}, 
                 "Goto Move #" + move :
                 "Goto Game Start";
             return (
-                <li key={move}>
-                    <button onClick={() => {
+
+                    <Button key={move} onClick={() => {
                         this.jumpTo(move)
-                    }}>{desc}</button>
-                </li>
+                    }} size="sm">{desc}</Button>
+
             )
         })
 
@@ -201,7 +207,7 @@ class Game extends React.Component<{player: string, game: string, socket: any}, 
                     <div>{this.state.stepNumber}</div>
                     <div>Player: {this.state.player}</div>
                     <div>Game: {this.state.game}</div>
-                    <ol>{moves}</ol>
+                    <ButtonGroup vertical>{moves}</ButtonGroup>
                 </div>
             </div>
         );
@@ -280,6 +286,6 @@ class App extends React.Component<{}, any> {
 // ========================================
 
 ReactDOM.render(
-    <App/>,
+    <Container className="p-3"><App/></Container>,
     document.getElementById('root')
 );
