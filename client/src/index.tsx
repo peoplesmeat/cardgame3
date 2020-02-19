@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {AI} from './ai'
+// import {AI} from './ai'
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import io from 'socket.io-client';
@@ -8,6 +8,8 @@ import io from 'socket.io-client';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
+import Nav from 'react-bootstrap/Nav';
 
 
 type SquareProps = {
@@ -122,8 +124,8 @@ class Game extends React.Component<{player: string, game: string, socket: any}, 
     handleClick(i: number) {
 
         console.log(this.state);
-        if (this.state.xIsNext && this.state.player == 'X') {
-        } else if (!this.state.xIsNext && this.state.player == 'O') {
+        if (this.state.xIsNext && this.state.player === 'X') {
+        } else if (!this.state.xIsNext && this.state.player === 'O') {
         } else {
             return;
         }
@@ -246,11 +248,11 @@ class App extends React.Component<{}, any> {
 
     connect(): void {
         let socket: SocketIOClient.Socket | null = null;
-        socket = io.connect(`http://${window.location.hostname}:4000`);
+        socket = io.connect(`${window.location.origin}`, { path: '/myapp'});
         socket.on('news', (data: any) => {
             console.log("Connected: ", data);
 
-            if (data.message == "joined") {
+            if (data.message === "joined") {
                 this.setState({
                     connected: true,
                     currentGame: {game: data.game, player: data.player, socket: socket}
@@ -286,6 +288,12 @@ class App extends React.Component<{}, any> {
 // ========================================
 
 ReactDOM.render(
-    <Container className="p-3"><App/></Container>,
+    (<div><Navbar bg="dark" variant="dark">
+        <Navbar.Brand href="#home">Tic Tac Toe</Navbar.Brand>
+        <Nav className="mr-auto">
+
+        </Nav>
+    </Navbar>
+        <Container className="p-3"><App/></Container></div>),
     document.getElementById('root')
 );
