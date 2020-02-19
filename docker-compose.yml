@@ -1,0 +1,32 @@
+version: '3.7'
+
+services:
+#  api:
+#    build: services/api
+#    image: gcr.io/cardgame-268702/api
+#    command: python manage.py run -h 0.0.0.0
+#    volumes:
+#      - ./services/api/:/usr/src/app/
+#    ports:
+#      - 5000:5000
+#    env_file:
+#      - ./.env.dev
+  nginx:
+    build: ./nginx
+    image: gcr.io/cardgame-268702/nginx
+    ports:
+      - 1337:80
+ #   depends_on:
+ #     - api
+  db:
+    image: postgres:12.0-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=hello_flask
+      - POSTGRES_PASSWORD=hello_flask
+      - POSTGRES_DB=hello_flask_dev
+volumes:
+  postgres_data:
