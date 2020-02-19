@@ -12,7 +12,7 @@ services:
 #    env_file:
 #      - ./.env.dev
   nginx:
-    build: ./nginx
+    build: ./client
     image: gcr.io/cardgame-268702/nginx
     ports:
       - 1337:80
